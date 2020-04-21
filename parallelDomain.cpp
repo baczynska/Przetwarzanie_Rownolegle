@@ -9,6 +9,9 @@
 
 std::vector<int> seqSieve(int minNum, int maxNum) {
 
+    printf("\nDla zakresu\n");
+    std::cout << minNum << " **** " << maxNum << " ";
+
     int lastNum = (int)sqrt(maxNum);
     int arrSize = maxNum - minNum + 1;
 
@@ -54,29 +57,39 @@ std::vector<int> seqSieve(int minNum, int maxNum) {
 
 std::vector<int> parSieveDomain(int minNum, int maxNum) {
 
-    int numThreads = omp_get_num_threads();
+    
     int numbers = maxNum - minNum + 1;
-    int range = (int)numbers / numThreads;
-
     std::vector<int> primes;
+    
 
-#pragma omp parallel num threads(2)
-    for (int t = 0; t < numThreads; t++) {
+#pragma omp parallel
+    {
+        int numThreads = omp_get_num_threads();
+        int range = (int)numbers / numThreads;
+        
+        int threadNum = omp_get_thread_num();
+        int firstOne, lastOne;
 
-        int firstOne = minNum + t * range;
-        int lastOne = firstOne + (range - 1);
+        firstOne = minNum + threadNum * range;
+        lastOne = firstOne + (range - 1);
 
-        std::vector<int> myPrimes = seqSieve(firstOne, lastOne);
+        printf("\n\nNumer watku\n");
+        std::cout << threadNum << ' ';
 
+        std::vector<int> myPrimes = seqSieve(minNum + (threadNum * range), (minNum + (threadNum * range) + (range - 1)));
+    
         primes.insert(std::end(primes), std::begin(myPrimes), std::end(myPrimes));
+
     }
+
+    
 
     return primes;
 }
 
 int main()
 {
-    //seqSieve(8, 12);
+    //std::vector<int> finalPrimes = seqSieve(11, 18);
 
     std::vector<int> finalPrimes = parSieveDomain(3, 18);
 
