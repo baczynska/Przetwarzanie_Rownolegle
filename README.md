@@ -42,6 +42,9 @@ Maksymalna długość przetwarzania (dla dowolnej liczby procesów i wątków): 
 Zapis wyników w jednej strukturze </br>
 Warianty bazujące na różnych podejściach koncepcyjnych ze względu na różne wydajności mogą być testowane dla różnych
 instancji </br>
+Także, by zweryfikować poprwność: </br>
+- wyświetlenie liczb pierwszych na konsoli w wierszach po 10 
+- wyświetla liczbę liczb pierwszych w badanym zakresie </br> </br>
 Testowane instancje:
 - 2..MAX
 - MAX/2..MAX
@@ -51,6 +54,12 @@ Liczba użytych procesorów
 - Przetwarzanie równoległe -> maksymalna liczba procesorów logicznych w systemie
 - Przetwarzanie równoległe -> maksymalna liczba procesorów fizycznych w systemie (jeśli różna od liczby logicznych)
 - Przetwarzanie równoległe -> połowa liczby procesorów fizycznych (jeśli liczba różna od użytych wcześniej)
+
+### By zminimalizować koszty związane z synchronizacją:
+- jedna dyrektywa tworząca wątki #pragma omp parallel
+- obecność wyścigu usuwamy za pomocą klauzuli nowait
+- minimalizacja unieważnień linii pamięci podręcznej
+
 
 ### [TODO]
 1. Upewnić się, że pojęcia 'domenowe' i 'funkcyjne' nie powinnym być odwrotnie przypasowane do algorytmów
