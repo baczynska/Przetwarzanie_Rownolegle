@@ -37,11 +37,11 @@ Kontrolować zależności pomiędzy numerem eksperymentu, trybem realizacji oraz
 ##### !! Wszystkie kody źródłowe używane w eksperymentach umieścić w sprawozdaniu w części wstępnej (także scharakteryzować: użyte podejście, użyte struktury, dostęp do danych współdzielenie, podział pracy, dominujące operacje arytmetyczne)
 
 ### Uruchomienie przetwarzania
-Konfiguracja: Release, x86
-Maksymalna długość przetwarzania (dla dowolnej liczby procesów i wątków): 1 minuta
-Zapis wyników w jednej strukturze
+Konfiguracja: Release, x86 </br>
+Maksymalna długość przetwarzania (dla dowolnej liczby procesów i wątków): 1 minuta </br>
+Zapis wyników w jednej strukturze </br>
 Warianty bazujące na różnych podejściach koncepcyjnych ze względu na różne wydajności mogą być testowane dla różnych
-instancji 
+instancji </br>
 Testowane instancje:
 - 2..MAX
 - MAX/2..MAX
