@@ -1,113 +1,259 @@
-Ôªø// ConsoleApplication2.cpp : Ten plik zawiera funkcjƒô ‚Äûmain‚Äù. W nim rozpoczyna siƒô i ko≈Ñczy wykonywanie programu.
-//
-
 #include <stdio.h>
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include <omp.h>
+#include "omp.h"
 
-std::vector<int> seqSieve(int minNum, int maxNum) {
+#define threadsNum 4
 
-    printf("\nDla zakresu\n");
-    std::cout << minNum << " **** " << maxNum << " ";
+//////////////////////////////////////////////////////////////////
 
-    int lastNum = (int)sqrt(maxNum);
-    int arrSize = maxNum - minNum + 1;
+void printVector(std::vector <int> vec)
+{
+    for (int i = 0; i < vec.size(); i++)
+    {
+        printf("%d ", vec[i]);
+        if(i % 10 == 9) //co 10-ta liczba
+            printf("\n");
+    }
+    printf("\nprime numbers count: %d\n", vec.size());
+}
 
+std::vector < std::vector <int> > createSubsets(int lowerLimit, int upperLimit, int subsetsNumber) 
+{
+    int range = (upperLimit - lowerLimit) / subsetsNumber;
+    std::vector < std::vector <int> > subsets;
+    std::vector <int> singleSubset;
+
+    int nextNumber = lowerLimit;
+    for (int i = 0; i < subsetsNumber - 1; i++) 
+    {
+        singleSubset = { nextNumber, nextNumber + range - 1};
+        subsets.push_back(singleSubset);
+        nextNumber = nextNumber + range;
+    }
+    singleSubset = { nextNumber, upperLimit };
+    subsets.push_back(singleSubset);
+
+    return subsets;
+}
+
+//////////////////////////////////////////////////////////////////
+
+/*
+    1. Podziel pomiÍdzy wπtki zbiÛr podany na wejúcie algorytmu (na podzbiory):
+        2. Wykonuj dla kaødej liczby ze zbioru (2 ... sqrt(N)):
+            1. Jeúli liczba jest juø w zbiorze liczb z≥oøonych, weü nastÍpnπ liczbÍ
+            2. Dodaj wszystkie wielokrotnoúci tej liczby znajdujπce siÍ w podzbiorze wπtku
+               do GLOBALNEGO zbioru liczb z≥oøonych(atomowo)
+            3. Jeúli wszystkie liczby z przedzia≥u okaza≥y siÍ byÊ z≥oøone zakoÒcz iteracjÍ
+    2. Wszystkie liczby z interesujπcego nas przedzia≥u, ktÛrych nie ma w
+       zbiorze liczb z≥oøonych, sπ liczbami pierwszymi
+
+    -KoniecznoúÊ atomowego dodawania liczb do zbioru
+    +Nie potrzeba øadnego dodatkowego zbioru z liczbami pierwszymi
+    +/-Przewaønie dodajemy do zbioru tylko wielokrotnoúci liczb pierwszych
+     (a nie np wielokrotnoúci czwÛrki: 4, 8, 12, 16)
+*/
+std::vector<int> parallelDomain1(int minNum, int maxNum)
+{
     std::vector<int> vectorComplex;
-    std::vector<int> vectorPrime;
-    
-    for (int i = 2; i <= lastNum; i++) {
-        if (std::count(vectorComplex.begin(), vectorComplex.end(), i)) {
-            // ju≈º wiemy, ≈ºe to liczba z≈Ço≈ºona
-        }
-        else {
-            // jest to liczba pierwsza
-            if(i>= minNum)
-                vectorPrime.push_back(i);
-            for (int m = (i + 1); m <= maxNum; m++) {
-                if ((m % i == 0) && (m>=minNum)) {
-                    // wiemy, ≈ºe jest to liczba z≈Ço≈ºona podzielna przez naszƒÖ liczbƒô pirwszƒÖ i
-                    if ((std::count(vectorComplex.begin(), vectorComplex.end(), m)) == false) {
-                        vectorComplex.push_back(m);
+    std::vector < std::vector <int> > subsets = createSubsets(minNum, maxNum, threadsNum);
+
+#pragma omp		parallel num_threads(threadsNum)
+    {
+        int threadNumber = omp_get_thread_num();
+        std::vector <int> threadSubset = subsets[threadNumber];
+        int lastNum = (int)sqrt(threadSubset[1]);
+        int complexCounter = 0;
+        int range = ( threadSubset[1] - threadSubset[0] ) + 1;
+
+        for (int i = 2; i <= lastNum; i++) {
+            if (std::count(vectorComplex.begin(), vectorComplex.end(), i)) //juø wiemy, øe to liczba z≥oøona
+                continue;
+            //znajdujemy pierwsza wielokrotnosc tej liczby w przedziale watku
+            int m = threadSubset[0];
+            for (; m % i != 0; m++)
+                continue;
+            if (m == i)
+                m = i + i;
+            
+            for (; m <= threadSubset[1]; m += i) //dodajemy wszystkie wielokrotnoúci
+            {
+#pragma omp critical
+                if ((std::count(vectorComplex.begin(), vectorComplex.end(), m)) == false) //nie ma jej jeszcze w vectorComplex
+                {
+                    vectorComplex.push_back(m);
+                    complexCounter++;
+                    if (complexCounter == range) //dodaliúmy juø wszystkie liczby z przedzialu
+                    { 
+                        i = lastNum + 1;
+                        m = maxNum + 1;
                     }
                 }
             }
         }
-        
     }
 
-    for (int i = (lastNum + 1); i <= maxNum; i++) {
-        if (((std::count(vectorComplex.begin(), vectorComplex.end(), i)) == false) && i>=minNum) {
+    std::vector<int> vectorPrime;
+    for (int i = minNum; i <= maxNum; i++)
+        if (std::count(vectorComplex.begin(), vectorComplex.end(), i) == false) //liczby nie ma w vectorComplex
             vectorPrime.push_back(i);
-        }
-    }
-
-    printf("Complex\n");
-    for (int x : vectorComplex)
-        std::cout << x << " ";
-
-    printf("\nPrime\n");
-    for (int x : vectorPrime)
-        std::cout << x << " ";
 
     return vectorPrime;
 }
 
-std::vector<int> parSieveDomain(int minNum, int maxNum) {
+//////////////////////////////////////////////////////////////////
 
-    
-    int numbers = maxNum - minNum + 1;
-    std::vector<int> primes;
-    
+/*
+    1. Podziel pomiÍdzy wπtki zbiÛr podany na wejúcie algorytmu (na podzbiory):
+        1. Wykonuj dla kaødej liczby ze zbioru (2 ... sqrt(N)):
+            1. Dodaj wszystkie wielokrotnoúci tej liczby znajdujπce siÍ w podzbiorze wπtku
+               do LOKALNEGO zbioru liczb z≥oøonych wπtku
+            2. Jeúli wszystkie liczby z przedzia≥u okaza≥y siÍ byÊ z≥oøone zakoÒcz iteracjÍ
+    3. Po≥πcz wszystkie lokalne zbiory liczb z≥oøonych w jeden globalny
+    4. Wszystkie liczby z interesujπcego nas przedzia≥u, ktÛrych nie ma w
+       zbiorze liczb z≥oøonych, sπ liczbami pierwszymi
 
-#pragma omp parallel
+    +Brak koniecznoúci atomowego dodawania liczb do zbioru
+    +Nie potrzeba øadnego dodatkowego zbioru z liczbami pierwszymi
+    -Dodajemy do zbioru takøe wielokrotnoúci liczb z≥oøonych
+     (np wielokrotnoúci czwÛrki: 4, 8, 12, 16)
+*/
+std::vector<int> parallelDomain2(int minNum, int maxNum)
+{
+    std::vector<int> globalComplex;
+    std::vector < std::vector <int> > subsets = createSubsets(minNum, maxNum, threadsNum);
+
+#pragma omp		parallel num_threads(threadsNum)
     {
-        int numThreads = omp_get_num_threads();
-        int range = (int)numbers / numThreads;
-        
-        int threadNum = omp_get_thread_num();
-        int firstOne, lastOne;
+        std::vector<int> localComplex;
+        int threadNumber = omp_get_thread_num();
+        std::vector <int> threadSubset = subsets[threadNumber];
+        int lastNum = (int)sqrt(threadSubset[1]);
+        int complexCounter = 0;
+        int range = (threadSubset[1] - threadSubset[0]) + 1;
 
-        firstOne = minNum + threadNum * range;
-        lastOne = firstOne + (range - 1);
+        for (int i = 2; i <= lastNum; i++) {
+            if (std::count(localComplex.begin(), localComplex.end(), i)) //juø wiemy, øe to liczba z≥oøona
+                continue;
 
-        printf("\n\nNumer watku\n");
-        std::cout << threadNum << ' ';
+            //znajdujemy pierwsza wielokrotnosc tej liczby w przedziale watku
+            int m = threadSubset[0];
+            for (; m % i != 0; m++)
+                continue;
+            if (m == i)
+                m = i + i;
 
-        std::vector<int> myPrimes = seqSieve(minNum + (threadNum * range), (minNum + (threadNum * range) + (range - 1)));
-    
-        primes.insert(std::end(primes), std::begin(myPrimes), std::end(myPrimes));
+            for (; m <= threadSubset[1]; m += i) //dodajemy wszystkie wielokrotnoúci
+            {
+                if ((std::count(localComplex.begin(), localComplex.end(), m)) == false) //nie ma jej jeszcze w vectorComplex
+                {
+                    localComplex.push_back(m);
+                    complexCounter++;
+                    if (complexCounter == range) //dodaliúmy juø wszystkie liczby z przedzialu
+                    {
+                        i = lastNum + 1;
+                        m = maxNum + 1;
+                    }
+                }
+            }
+        }
 
+        //≥πczenie lokalnych zbiorÛw liczb z≥oøonych w jeden globalny
+#pragma omp critical
+        globalComplex.insert(globalComplex.end(), localComplex.begin(), localComplex.end());
     }
 
-    
+    std::vector<int> vectorPrime;
+    for (int i = minNum; i <= maxNum; i++)
+        if (std::count(globalComplex.begin(), globalComplex.end(), i) == false) //liczby nie ma w vectorComplex
+            vectorPrime.push_back(i);
 
-    return primes;
+    return vectorPrime;
 }
+
+//////////////////////////////////////////////////////////////////
+
+/*
+    1. Znajdü wszystkie liczby pierwsze <= sqrt(upperLimit)
+    2. Podziel pomiÍdzy wπtki zbiÛr podany na wejúcie algorytmu (na podzbiory):
+        1. Wykonuj dla kaødej liczby ze zbioru liczb pierwszych:
+            1. Dodaj wszystkie wielokrotnoúci tej liczby znajdujπce siÍ w podzbiorze wπtku
+               do LOKALNEGO zbioru liczb z≥oøonych wπtku
+            2. Jeúli wszystkie liczby z przedzia≥u okaza≥y siÍ byÊ z≥oøone zakoÒcz iteracjÍ
+    3. Po≥πcz wszystkie lokalne zbiory liczb z≥oøonych w jeden globalny
+    4. Wszystkie liczby z interesujπcego nas przedzia≥u, ktÛrych nie ma w
+       zbiorze liczb z≥oøonych, sπ liczbami pierwszymi
+
+    +Brak koniecznoúci atomowego dodawania liczb do zbioru
+    -Potrzeba wygenerowania zbioru liczb pierwszych 
+     przed wykonaniem algorytmu
+    +Dodajemy do zbioru tylko wielokrotnoúci liczb pierwszych
+     (a nie np wielokrotnoúci czwÛrki: 4, 8, 12, 16)
+*/
+std::vector<int> parallelDomain3(int minNum, int maxNum)
+{
+    int lastNum = (int)sqrt(maxNum);
+    std::vector < std::vector <int> > subsets = createSubsets(minNum, maxNum, threadsNum);
+    std::vector<int> globalComplex;
+
+    std::vector <int> startingPrimes = parallelDomain1(2, lastNum);
+
+#pragma omp		parallel num_threads(threadsNum)
+    {
+        std::vector<int> localComplex;
+        int threadNumber = omp_get_thread_num();
+        std::vector <int> threadSubset = subsets[threadNumber];
+        int lastNum = (int)sqrt(threadSubset[1]);
+        int complexCounter = 0;
+        int range = (threadSubset[1] - threadSubset[0]) + 1;
+
+        for (int i = 0; i < startingPrimes.size(); i++) {
+            int primeNumber = startingPrimes[i];
+            if (std::count(localComplex.begin(), localComplex.end(), primeNumber)) //juø wiemy, øe to liczba z≥oøona
+                continue;
+
+            //znajdujemy pierwsza wielokrotnosc tej liczby w przedziale watku
+            int m = threadSubset[0];
+            for (; m % primeNumber != 0; m++)
+                continue;
+            if (m == primeNumber)
+                m = primeNumber + primeNumber;
+
+            for (; m <= threadSubset[1]; m += primeNumber) //dodajemy wszystkie wielokrotnoúci
+            {
+                if ((std::count(localComplex.begin(), localComplex.end(), m)) == false) //nie ma jej jeszcze w vectorComplex
+                {
+                    localComplex.push_back(m);
+                    complexCounter++;
+                    if (complexCounter == range) //dodaliúmy juø wszystkie liczby z przedzialu
+                    {
+                        i = startingPrimes.size();
+                        m = maxNum + 1;
+                    }
+                }
+            }
+        }
+
+#pragma omp critical
+        globalComplex.insert(globalComplex.end(), localComplex.begin(), localComplex.end());
+    }
+
+    std::vector<int> vectorPrime;
+    for (int i = minNum; i <= maxNum; i++)
+        if (std::count(globalComplex.begin(), globalComplex.end(), i) == false) //liczby nie ma w vectorComplex
+            vectorPrime.push_back(i);
+
+    return vectorPrime;
+}
+
+//////////////////////////////////////////////////////////////////
 
 int main()
 {
-    //std::vector<int> finalPrimes = seqSieve(11, 18);
-
-    std::vector<int> finalPrimes = parSieveDomain(3, 18);
-
-    printf("\n\nFinal Primes\n");
-    for (int x : finalPrimes)
-        std::cout << x << " ";
-
-
-    printf("\nGoodbye World\n");
+    std::vector <int> tmp = parallelDomain1(20, 100);
+    //std::vector <int> tmp = parallelDomain2(20, 100);
+    //std::vector <int> tmp = parallelDomain3(20, 100);
+    printVector(tmp);
 }
-
-// Uruchomienie programu: Ctrl + F5 lub menu Debugowanie > Uruchom bez debugowania
-// Debugowanie programu: F5 lub menu Debugowanie > Rozpocznij debugowanie
-
-// Porady dotyczƒÖce rozpoczynania pracy:
-//   1. U≈ºyj okna Eksploratora rozwiƒÖza≈Ñ, aby dodaƒá pliki i zarzƒÖdzaƒá nimi
-//   2. U≈ºyj okna programu Team Explorer, aby nawiƒÖzaƒá po≈ÇƒÖczenie z kontrolƒÖ ≈∫r√≥d≈Ça
-//   3. U≈ºyj okna Dane wyj≈õciowe, aby sprawdziƒá dane wyj≈õciowe kompilacji i inne komunikaty
-//   4. U≈ºyj okna Lista b≈Çƒôd√≥w, aby zobaczyƒá b≈Çƒôdy
-//   5. Wybierz pozycjƒô Projekt > Dodaj nowy element, aby utworzyƒá nowe pliki kodu, lub wybierz pozycjƒô Projekt > Dodaj istniejƒÖcy element, aby dodaƒá istniejƒÖce pliku kodu do projektu
-//   6. Aby w przysz≈Ço≈õci ponownie otworzyƒá ten projekt, przejd≈∫ do pozycji Plik > Otw√≥rz > Projekt i wybierz plik sln
