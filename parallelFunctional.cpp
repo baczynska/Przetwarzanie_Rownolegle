@@ -8,10 +8,15 @@
 
 void printVector(std::vector <int> vec)
 {
-    for (int x : vec)
-        printf("%d ", x);
-    printf("\n");
+    for (int i = 0; i < vec.size(); i++)
+    {
+        printf("%d ", vec[i]);
+        if (i % 10 == 9) //co 10-ta liczba
+            printf("\n");
+    }
+    printf("\nprime numbers count: %d\n", vec.size());
 }
+
 
 //////////////////////////////////////////////////////////////////
 
