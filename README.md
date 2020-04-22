@@ -36,6 +36,22 @@ Używane wersje algorytmów zapisywać jako wersje kodu do konkretnego zadania (
 Kontrolować zależności pomiędzy numerem eksperymentu, trybem realizacji oraz testowanym kodem.
 ##### !! Wszystkie kody źródłowe używane w eksperymentach umieścić w sprawozdaniu w części wstępnej (także scharakteryzować: użyte podejście, użyte struktury, dostęp do danych współdzielenie, podział pracy, dominujące operacje arytmetyczne)
 
+### Uruchomienie przetwarzania
+Konfiguracja: Release, x86
+Maksymalna długość przetwarzania (dla dowolnej liczby procesów i wątków): 1 minuta
+Zapis wyników w jednej strukturze
+Warianty bazujące na różnych podejściach koncepcyjnych ze względu na różne wydajności mogą być testowane dla różnych
+instancji 
+Testowane instancje:
+- 2..MAX
+- MAX/2..MAX
+- 2..MAX/2
+Liczba użytych procesorów
+- Przetwarzanie sekwencyjne -> jeden procesor
+- Przetwarzanie równoległe -> maksymalna liczba procesorów logicznych w systemie
+- Przetwarzanie równoległe -> maksymalna liczba procesorów fizycznych w systemie (jeśli różna od liczby logicznych)
+- Przetwarzanie równoległe -> połowa liczby procesorów fizycznych (jeśli liczba różna od użytych wcześniej)
+
 ### [TODO]
 1. Upewnić się, że pojęcia 'domenowe' i 'funkcyjne' nie powinnym być odwrotnie przypasowane do algorytmów
 
