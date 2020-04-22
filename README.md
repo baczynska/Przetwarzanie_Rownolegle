@@ -67,6 +67,15 @@ Liczba użytych procesorów
 - rodzaj wykonywanej operacji podstawowej (koncepcja 1 -> dzielenie, koncepcja 2 -> dodawanie)
 ##### !! (W sprawozdaniu) Określić parametry uruchomień, ocenić prędkość, przyspieszenie oraz wyjaścić przyczynę zaobserwowanych wartości
 
+### Sprawozdanie
+#### Punkt 1 
+Opis wykorzystanego systemu obliczeniowego
+
+#### Punkt 2
+Prezentacja przygotowanych wariantów kodów z wyjaśnieniem przewidywanego przebiegu przetwarzania. Kluczowe elementy podane w sposób skrótowy. </br>
+W opisie przebiegu przetwarzania należy uwzględnić: </br>
+< już zawarto w docu >
+
 ### [TODO]
 1. Upewnić się, że pojęcia 'domenowe' i 'funkcyjne' nie powinnym być odwrotnie przypasowane do algorytmów
 
