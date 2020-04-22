@@ -57,9 +57,15 @@ Liczba użytych procesorów
 
 ### By zminimalizować koszty związane z synchronizacją:
 - jedna dyrektywa tworząca wątki #pragma omp parallel
-- obecność wyścigu usuwamy za pomocą klauzuli nowait
+- obecność wyścigu usuwamy za pomocą klauzuli 'nowait'
 - minimalizacja unieważnień linii pamięci podręcznej
 
+### Problemy do podjęcia w trakcie przygotowywania kodu:
+- lokalność dostępu do danych -> unikać unieważnienia linii pamięci podręcznej
+- zrównoważenie obciążeń procesów -> uwzględnić czas wykonywania oraz rozrzut jego wartości (podejście równoległe, podział pracy statyczny oraz dynamiczny) 
+- ocena jakości zrównoważenie (w sprawozdaniu)
+- rodzaj wykonywanej operacji podstawowej (koncepcja 1 -> dzielenie, koncepcja 2 -> dodawanie)
+##### !! (W sprawozdaniu) Określić parametry uruchomień, ocenić prędkość, przyspieszenie oraz wyjaścić przyczynę zaobserwowanych wartości
 
 ### [TODO]
 1. Upewnić się, że pojęcia 'domenowe' i 'funkcyjne' nie powinnym być odwrotnie przypasowane do algorytmów
