@@ -48,7 +48,7 @@ Także, by zweryfikować poprwność: </br>
 Testowane instancje:
 - 2..MAX
 - MAX/2..MAX
-- 2..MAX/2
+- 2..MAX/2 </br> </br>
 Liczba użytych procesorów
 - Przetwarzanie sekwencyjne -> jeden procesor
 - Przetwarzanie równoległe -> maksymalna liczba procesorów logicznych w systemie
