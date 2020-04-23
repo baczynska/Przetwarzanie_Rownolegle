@@ -25,9 +25,11 @@ std::vector<int> seqSieve(int minNum, int maxNum) {
     for (int i = 2; i <= maxNum; i++)
         primeOrComplex.push_back(PRIME);
 
-    for (int i = 0; i < lastNum; i++)
+    for (int i = 0; ; i++)
     {
         int number = 2 + i;
+        if (lastNum < number)
+            break;
         if (primeOrComplex[i] == COMPLEX)
             continue;
 
