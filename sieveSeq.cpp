@@ -25,16 +25,13 @@ std::vector<int> seqSieve(int minNum, int maxNum) {
     for (int i = 2; i <= maxNum; i++)
         primeOrComplex.push_back(PRIME);
 
-    for (int i = 0; ; i++)
+    for (int divider = 2; divider <= lastNum; divider++)
     {
-        int number = 2 + i;
-        if (lastNum < number)
-            break;
-        if (primeOrComplex[i] == COMPLEX)
+        if (primeOrComplex[divider - 2] == COMPLEX)
             continue;
 
-        for (int m = number + number; m <= maxNum; m += number) //usuwamy wszystkie wielokrotnoœci
-            primeOrComplex[m - 2] = COMPLEX;
+        for (int multiple = divider + divider; multiple <= maxNum; multiple += divider) //usuwamy wszystkie wielokrotnoœci
+            primeOrComplex[multiple - 2] = COMPLEX;
     }
 
     std::vector <int> primeNumbers;
@@ -50,5 +47,5 @@ std::vector<int> seqSieve(int minNum, int maxNum) {
 int main()
 {
     std::vector <int> tmp = seqSieve(2, 300000000);
-    //printVector(tmp);
+    printVector(tmp);
 }
