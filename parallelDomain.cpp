@@ -136,7 +136,9 @@ std::vector<int> parallelDomain2(int minNum, int maxNum)
         int upperSubsetLimit = threadSubset[1];
         int lastSubsetNumber = (int)sqrt(upperSubsetLimit);
 
-        std::vector<int> localComplex;
+        std::vector<bool> localPrimeOrComplex;
+        for (int i = lowerSubsetLimit; i <= upperSubsetLimit; i++)
+            localPrimeOrComplex.push_back(PRIME);
 
         for (int divider = 2; divider <= lastSubsetNumber; divider++)
         {
@@ -148,15 +150,18 @@ std::vector<int> parallelDomain2(int minNum, int maxNum)
                 multiple = divider + divider;
 
             for (; multiple <= upperSubsetLimit; multiple += divider) //dodajemy wszystkie wielokrotnoœci
-                localComplex.push_back(multiple);
+                localPrimeOrComplex[multiple - lowerSubsetLimit] = COMPLEX;
         }
 
         //³¹czenie lokalnych zbiorów liczb z³o¿onych w jeden globalny
-        for (int i = 0; i < localComplex.size(); i++)
+        for (int i = 0; i < localPrimeOrComplex.size(); i++)
         {
-            int numberIndex = localComplex[i] - 2;
+            if (localPrimeOrComplex[i] == COMPLEX)
+            {
+                int numberIndex = i + lowerSubsetLimit - 2;
 #pragma omp critical
-            primeOrComplex[numberIndex] = COMPLEX;
+                primeOrComplex[numberIndex] = COMPLEX;
+            }
         }
     }
 
@@ -207,7 +212,9 @@ std::vector<int> parallelDomain3(int minNum, int maxNum)
         int upperSubsetLimit = threadSubset[1];
         int lastSubsetNumber = (int)sqrt(upperSubsetLimit);
 
-        std::vector<int> localComplex;
+        std::vector<bool> localPrimeOrComplex;
+        for (int i = lowerSubsetLimit; i <= upperSubsetLimit; i++)
+            localPrimeOrComplex.push_back(PRIME);
 
         for (int i = 0; i < startingPrimes.size(); i++) 
         {
@@ -221,15 +228,18 @@ std::vector<int> parallelDomain3(int minNum, int maxNum)
                 multiple = primeNumber + primeNumber;
 
             for (; multiple <= upperSubsetLimit; multiple += primeNumber) //dodajemy wszystkie wielokrotnoœci
-                localComplex.push_back(multiple);
+                localPrimeOrComplex[multiple - lowerSubsetLimit] = COMPLEX;
         }
 
         //³¹czenie lokalnych zbiorów liczb z³o¿onych w jeden globalny
-        for (int i = 0; i < localComplex.size(); i++)
+        for (int i = 0; i < localPrimeOrComplex.size(); i++)
         {
-            int numberIndex = localComplex[i] - 2;
+            if (localPrimeOrComplex[i] == COMPLEX)
+            {
+                int numberIndex = i + lowerSubsetLimit - 2;
 #pragma omp critical
-            primeOrComplex[numberIndex] = COMPLEX;
+                primeOrComplex[numberIndex] = COMPLEX;
+            }
         }
     }
 
@@ -249,6 +259,6 @@ int main()
 {
     //std::vector <int> tmp = parallelDomain1(20, 100);
     //std::vector <int> tmp = parallelDomain2(20, 100);
-    std::vector <int> tmp = parallelDomain3(20, 100);
-    printVector(tmp);
+    std::vector <int> tmp = parallelDomain3(2, 3000000);
+    //printVector(tmp);
 }
