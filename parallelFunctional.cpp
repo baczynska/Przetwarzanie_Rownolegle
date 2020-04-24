@@ -4,6 +4,11 @@
 #include <cmath>
 #include "omp.h"
 
+#define threadsNum 8
+
+#define PRIME 1
+#define COMPLEX 0
+
 //////////////////////////////////////////////////////////////////
 
 void printVector(std::vector <int> vec)
@@ -37,31 +42,34 @@ void printVector(std::vector <int> vec)
 std::vector<int> parallelFunctional1(int minNum, int maxNum)
 {
     int lastNum = (int)sqrt(maxNum);
-    std::vector<int> vectorComplex;
+    std::vector<bool> primeOrComplex;
+    for (int i = 2; i <= maxNum; i++)
+        primeOrComplex.push_back(PRIME);
 
-#pragma omp		parallel num_threads(4)
+#pragma omp		parallel num_threads(threadsNum)
     {
 #pragma omp		for
-        for (int i = 2; i <= lastNum; i++) {
-            if (std::count(vectorComplex.begin(), vectorComplex.end(), i)) //ju¿ wiemy, ¿e to liczba z³o¿ona
-                break;
+        for (int divider = 2; divider <= lastNum; divider++)
+        {
+            if (primeOrComplex[divider - 2] == COMPLEX)
+                continue;
 
-            //jest to liczba pierwsza
-            for (int m = i + i; m <= maxNum; m += i) //dodajemy wszystkie wielokrotnoœci
+            for (int multiple = divider + divider; multiple <= maxNum; multiple += divider) //usuwamy wszystkie wielokrotnoœci
             {
 #pragma omp critical
-                if ((std::count(vectorComplex.begin(), vectorComplex.end(), m)) == false) //nie ma jej jeszcze w vectorComplex
-                    vectorComplex.push_back(m);
+                primeOrComplex[multiple - 2] = COMPLEX;
             }
         }
     }
 
-    std::vector<int> vectorPrime;
-    for (int i = minNum; i <= maxNum; i++)
-        if (std::count(vectorComplex.begin(), vectorComplex.end(), i) == false) //liczby nie ma w vectorComplex
-            vectorPrime.push_back(i);
+    std::vector <int> primeNumbers;
+    for (int i = minNum - 2; i < primeOrComplex.size(); i++)
+    {
+        if (primeOrComplex[i] == PRIME)
+            primeNumbers.push_back(i + 2);
+    }
 
-    return vectorPrime;
+    return primeNumbers;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -83,35 +91,39 @@ std::vector<int> parallelFunctional1(int minNum, int maxNum)
 std::vector<int> parallelFunctional2(int minNum, int maxNum)
 {
     int lastNum = (int)sqrt(maxNum);
-    std::vector <int> globalComplex;
+    std::vector<bool> primeOrComplex;
+    for (int i = 2; i <= maxNum; i++)
+        primeOrComplex.push_back(PRIME);
 
-#pragma omp		parallel num_threads(4)
+#pragma omp		parallel num_threads(threadsNum)
     {
         std::vector<int> localComplex;
 
 #pragma omp		for
-        for (int i = 2; i <= lastNum; i++) {
-            if (std::count(localComplex.begin(), localComplex.end(), i)) //ju¿ wiemy, ¿e to liczba z³o¿ona
-                break;
-
+        for (int divider = 2; divider <= lastNum; divider++)
+        {
             //jest to liczba pierwsza
-            for (int m = i + i; m <= maxNum; m += i) //dodajemy wszystkie wielokrotnoœci
-                if ((std::count(localComplex.begin(), localComplex.end(), m)) == false) //nie ma jej jeszcze w vectorComplex
-                    localComplex.push_back(m);
+            for (int multiple = divider + divider; multiple <= maxNum; multiple += divider) //dodajemy wszystkie wielokrotnoœci
+                localComplex.push_back(multiple);
         }
 
         //³¹czenie lokalnych zbiorów liczb z³o¿onych w jeden globalny
+        for (int i = 0; i < localComplex.size(); i++)
+        {
+            int numberIndex = localComplex[i] - 2;
 #pragma omp critical
-        globalComplex.insert(globalComplex.end(), localComplex.begin(), localComplex.end());
+            primeOrComplex[numberIndex] = COMPLEX;
+        }
     }
 
+    std::vector <int> primeNumbers;
+    for (int i = minNum - 2; i < primeOrComplex.size(); i++)
+    {
+        if (primeOrComplex[i] == PRIME)
+            primeNumbers.push_back(i + 2);
+    }
 
-    std::vector<int> vectorPrime;
-    for (int i = minNum; i <= maxNum; i++)
-        if (std::count(globalComplex.begin(), globalComplex.end(), i) == false) //liczby nie ma w vectorComplex
-            vectorPrime.push_back(i);
-
-    return vectorPrime;
+    return primeNumbers;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -135,30 +147,39 @@ std::vector<int> parallelFunctional2(int minNum, int maxNum)
 std::vector<int> parallelFunctional3(int minNum, int maxNum)
 {
     int lastNum = (int)sqrt(maxNum);
-    std::vector<int> globalComplex;
+    std::vector<bool> primeOrComplex;
+    for (int i = 2; i <= maxNum; i++)
+        primeOrComplex.push_back(PRIME);
 
     std::vector <int> startingPrimes = parallelFunctional1(2, lastNum);
-#pragma omp		parallel num_threads(4)
+#pragma omp		parallel num_threads(threadsNum)
     {
         std::vector<int> localComplex;
 #pragma omp		for
         for (int i = 0; i < startingPrimes.size(); i++) 
         {
             int primeNumber = startingPrimes[i];
-            for (int m = primeNumber + primeNumber; m <= maxNum; m += primeNumber) //dodajemy wszystkie wielokrotnoœci
-                if ((std::count(localComplex.begin(), localComplex.end(), m)) == false) //nie ma jej jeszcze w vectorComplex
-                    localComplex.push_back(m);
+            for (int multiple = primeNumber + primeNumber; multiple <= maxNum; multiple += primeNumber) //dodajemy wszystkie wielokrotnoœci
+                localComplex.push_back(multiple);
         }
+
+        //³¹czenie lokalnych zbiorów liczb z³o¿onych w jeden globalny
+        for (int i = 0; i < localComplex.size(); i++)
+        {
+            int numberIndex = localComplex[i] - 2;
 #pragma omp critical
-        globalComplex.insert(globalComplex.end(), localComplex.begin(), localComplex.end());
+            primeOrComplex[numberIndex] = COMPLEX;
+        }
     }
 
-    std::vector<int> vectorPrime;
-    for (int i = minNum; i <= maxNum; i++)
-        if (std::count(globalComplex.begin(), globalComplex.end(), i) == false) //liczby nie ma w vectorComplex
-            vectorPrime.push_back(i);
+    std::vector <int> primeNumbers;
+    for (int i = minNum - 2; i < primeOrComplex.size(); i++)
+    {
+        if (primeOrComplex[i] == PRIME)
+            primeNumbers.push_back(i + 2);
+    }
 
-    return vectorPrime;
+    return primeNumbers;
 }
 
 //////////////////////////////////////////////////////////////////
