@@ -41,23 +41,27 @@ std::vector < std::vector <int> > createSubsets(int lowerLimit, int upperLimit, 
     return subsets;
 }
 
+std::vector < std::vector <bool> > createPOCD(std::vector < std::vector <int> > subsets)
+{
+    std::vector < std::vector <bool> > result;
+
+    for (int i = 0; i < threadsNum; i++)
+    {
+        int lowerSubsetLimit = subsets[i][0];
+        int upperSubsetLimit = subsets[i][1];
+
+        std::vector<bool> primeOrComplex;
+        for (int i = lowerSubsetLimit; i <= upperSubsetLimit; i++)
+            primeOrComplex.push_back(PRIME);
+
+        result.push_back(primeOrComplex);
+    }
+
+    return result;
+}
+
 //////////////////////////////////////////////////////////////////
 
-/*
-    1. Podziel pomiêdzy w¹tki zbiór podany na wejœcie algorytmu (na podzbiory):
-        2. Wykonuj dla ka¿dej liczby ze zbioru (2 ... sqrt(N)):
-            1. Jeœli liczba jest ju¿ w zbiorze liczb z³o¿onych, weŸ nastêpn¹ liczbê
-            2. Dodaj wszystkie wielokrotnoœci tej liczby znajduj¹ce siê w podzbiorze w¹tku
-               do GLOBALNEGO zbioru liczb z³o¿onych(atomowo)
-            3. Jeœli wszystkie liczby z przedzia³u okaza³y siê byæ z³o¿one zakoñcz iteracjê
-    2. Wszystkie liczby z interesuj¹cego nas przedzia³u, których nie ma w
-       zbiorze liczb z³o¿onych, s¹ liczbami pierwszymi
-
-    -Koniecznoœæ atomowego dodawania liczb do zbioru
-    +Nie potrzeba ¿adnego dodatkowego zbioru z liczbami pierwszymi
-    +/-Przewa¿nie dodajemy do zbioru tylko wielokrotnoœci liczb pierwszych
-     (a nie np wielokrotnoœci czwórki: 4, 8, 12, 16)
-*/
 std::vector<int> parallelDomain1(int minNum, int maxNum)
 {
     std::vector<bool> primeOrComplex;
@@ -106,27 +110,10 @@ std::vector<int> parallelDomain1(int minNum, int maxNum)
 
 //////////////////////////////////////////////////////////////////
 
-/*
-    1. Podziel pomiêdzy w¹tki zbiór podany na wejœcie algorytmu (na podzbiory):
-        1. Wykonuj dla ka¿dej liczby ze zbioru (2 ... sqrt(N)):
-            1. Dodaj wszystkie wielokrotnoœci tej liczby znajduj¹ce siê w podzbiorze w¹tku
-               do LOKALNEGO zbioru liczb z³o¿onych w¹tku
-            2. Jeœli wszystkie liczby z przedzia³u okaza³y siê byæ z³o¿one zakoñcz iteracjê
-    3. Po³¹cz wszystkie lokalne zbiory liczb z³o¿onych w jeden globalny
-    4. Wszystkie liczby z interesuj¹cego nas przedzia³u, których nie ma w
-       zbiorze liczb z³o¿onych, s¹ liczbami pierwszymi
-
-    +Brak koniecznoœci atomowego dodawania liczb do zbioru
-    +Nie potrzeba ¿adnego dodatkowego zbioru z liczbami pierwszymi
-    -Dodajemy do zbioru tak¿e wielokrotnoœci liczb z³o¿onych
-     (np wielokrotnoœci czwórki: 4, 8, 12, 16)
-*/
 std::vector<int> parallelDomain2(int minNum, int maxNum)
 {
-    std::vector<bool> primeOrComplex;
-    for (int i = 2; i <= maxNum; i++)
-        primeOrComplex.push_back(PRIME);
     std::vector < std::vector <int> > subsets = createSubsets(minNum, maxNum, threadsNum);
+    std::vector < std::vector <bool> > primeOrComplexDivided = createPOCD(subsets);
 
 #pragma omp		parallel num_threads(threadsNum)
     {
@@ -135,10 +122,6 @@ std::vector<int> parallelDomain2(int minNum, int maxNum)
         int lowerSubsetLimit = threadSubset[0];
         int upperSubsetLimit = threadSubset[1];
         int lastSubsetNumber = (int)sqrt(upperSubsetLimit);
-
-        std::vector<bool> localPrimeOrComplex;
-        for (int i = lowerSubsetLimit; i <= upperSubsetLimit; i++)
-            localPrimeOrComplex.push_back(PRIME);
 
         for (int divider = 2; divider <= lastSubsetNumber; divider++)
         {
@@ -150,20 +133,15 @@ std::vector<int> parallelDomain2(int minNum, int maxNum)
                 multiple = divider + divider;
 
             for (; multiple <= upperSubsetLimit; multiple += divider) //dodajemy wszystkie wielokrotnoœci
-                localPrimeOrComplex[multiple - lowerSubsetLimit] = COMPLEX;
-        }
-
-        //³¹czenie lokalnych zbiorów liczb z³o¿onych w jeden globalny
-        for (int i = 0; i < localPrimeOrComplex.size(); i++)
-        {
-            if (localPrimeOrComplex[i] == COMPLEX)
-            {
-                int numberIndex = i + lowerSubsetLimit - 2;
-#pragma omp critical
-                primeOrComplex[numberIndex] = COMPLEX;
-            }
+                primeOrComplexDivided[threadNumber][multiple - lowerSubsetLimit] = COMPLEX;
         }
     }
+
+    std::vector <bool> primeOrComplex;
+    primeOrComplex.reserve(maxNum - minNum); 
+    for(int i = 0; i < primeOrComplexDivided.size(); i++)
+        primeOrComplex.insert(primeOrComplex.end(), primeOrComplexDivided[i].begin(), primeOrComplexDivided[i].end());
+
 
     std::vector <int> primeNumbers;
     for (int i = minNum - 2; i < primeOrComplex.size(); i++)
@@ -177,23 +155,6 @@ std::vector<int> parallelDomain2(int minNum, int maxNum)
 
 //////////////////////////////////////////////////////////////////
 
-/*
-    1. ZnajdŸ wszystkie liczby pierwsze <= sqrt(upperLimit)
-    2. Podziel pomiêdzy w¹tki zbiór podany na wejœcie algorytmu (na podzbiory):
-        1. Wykonuj dla ka¿dej liczby ze zbioru liczb pierwszych:
-            1. Dodaj wszystkie wielokrotnoœci tej liczby znajduj¹ce siê w podzbiorze w¹tku
-               do LOKALNEGO zbioru liczb z³o¿onych w¹tku
-            2. Jeœli wszystkie liczby z przedzia³u okaza³y siê byæ z³o¿one zakoñcz iteracjê
-    3. Po³¹cz wszystkie lokalne zbiory liczb z³o¿onych w jeden globalny
-    4. Wszystkie liczby z interesuj¹cego nas przedzia³u, których nie ma w
-       zbiorze liczb z³o¿onych, s¹ liczbami pierwszymi
-
-    +Brak koniecznoœci atomowego dodawania liczb do zbioru
-    -Potrzeba wygenerowania zbioru liczb pierwszych 
-     przed wykonaniem algorytmu
-    +Dodajemy do zbioru tylko wielokrotnoœci liczb pierwszych
-     (a nie np wielokrotnoœci czwórki: 4, 8, 12, 16)
-*/
 std::vector<int> parallelDomain3(int minNum, int maxNum)
 {
     std::vector<bool> primeOrComplex;
@@ -257,8 +218,6 @@ std::vector<int> parallelDomain3(int minNum, int maxNum)
 
 int main()
 {
-    //std::vector <int> tmp = parallelDomain1(20, 100);
-    //std::vector <int> tmp = parallelDomain2(20, 100);
-    std::vector <int> tmp = parallelDomain3(2, 3000000);
-    //printVector(tmp);
+    std::vector <int> tmp = parallelDomain2(2, 100);
+    printVector(tmp);
 }
