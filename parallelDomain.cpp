@@ -4,7 +4,7 @@
 #include <cmath>
 #include "omp.h"
 
-#define threadsNum 8
+#define threadsNum 6
 
 #define PRIME 1
 #define COMPLEX 0
@@ -39,25 +39,6 @@ std::vector < std::vector <int> > createSubsets(int lowerLimit, int upperLimit, 
     subsets.push_back(singleSubset);
 
     return subsets;
-}
-
-std::vector < std::vector <bool> > createPOCD(std::vector < std::vector <int> > subsets)
-{
-    std::vector < std::vector <bool> > result;
-
-    for (int i = 0; i < threadsNum; i++)
-    {
-        int lowerSubsetLimit = subsets[i][0];
-        int upperSubsetLimit = subsets[i][1];
-
-        std::vector<bool> primeOrComplex;
-        for (int i = lowerSubsetLimit; i <= upperSubsetLimit; i++)
-            primeOrComplex.push_back(PRIME);
-
-        result.push_back(primeOrComplex);
-    }
-
-    return result;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -112,8 +93,59 @@ std::vector<int> parallelDomain1(int minNum, int maxNum)
 
 std::vector<int> parallelDomain2(int minNum, int maxNum)
 {
+    //CREATE GLOBAL SUBSETS//
     std::vector < std::vector <int> > subsets = createSubsets(minNum, maxNum, threadsNum);
-    std::vector < std::vector <bool> > primeOrComplexDivided = createPOCD(subsets);
+
+    std::vector <bool> subset0;
+    std::vector <bool> subset1;
+    std::vector <bool> subset2;
+    std::vector <bool> subset3;
+    std::vector <bool> subset4;
+    std::vector <bool> subset5;
+    std::vector <bool> subset6;
+    std::vector <bool> subset7;
+
+    if (threadsNum == 0)
+        goto subsetsCreated;
+    for (int i = 0; i < subsets[0][1] - subsets[0][0] + 1; i++)
+        subset0.push_back(PRIME);
+
+    if (threadsNum == 1)                                      
+        goto subsetsCreated;
+    for (int i = 0; i < subsets[1][1] - subsets[1][0] + 1; i++)
+        subset1.push_back(PRIME);
+                                                               
+    if (threadsNum == 2)                                       
+        goto subsetsCreated;
+    for (int i = 0; i < subsets[2][1] - subsets[2][0] + 1; i++)
+        subset2.push_back(PRIME);
+                                                              
+    if (threadsNum == 3)                                      
+        goto subsetsCreated;
+    for (int i = 0; i < subsets[3][1] - subsets[3][0] + 1; i++)
+        subset3.push_back(PRIME);
+                                                              
+    if (threadsNum == 4)                                      
+        goto subsetsCreated;
+    for (int i = 0; i < subsets[4][1] - subsets[4][0] + 1; i++)
+        subset4.push_back(PRIME);
+                                                             
+    if (threadsNum == 5)                                     
+        goto subsetsCreated;
+    for (int i = 0; i < subsets[5][1] - subsets[5][0] + 1; i++)
+        subset5.push_back(PRIME);
+                                                              
+    if (threadsNum == 6)                                      
+        goto subsetsCreated;
+    for (int i = 0; i < subsets[6][1] - subsets[6][0] + 1; i++)
+        subset6.push_back(PRIME);
+                                                              
+    if (threadsNum == 7)                                      
+        goto subsetsCreated;
+    for (int i = 0; i < subsets[7][1] - subsets[7][0] + 1; i++)
+        subset7.push_back(PRIME);
+
+subsetsCreated:
 
 #pragma omp		parallel num_threads(threadsNum)
     {
@@ -121,7 +153,9 @@ std::vector<int> parallelDomain2(int minNum, int maxNum)
         std::vector <int> threadSubset = subsets[threadNumber];
         int lowerSubsetLimit = threadSubset[0];
         int upperSubsetLimit = threadSubset[1];
+        int subsetRange = upperSubsetLimit - lowerSubsetLimit + 1;
         int lastSubsetNumber = (int)sqrt(upperSubsetLimit);
+        std::vector <bool> subset(subsetRange, PRIME);
 
         for (int divider = 2; divider <= lastSubsetNumber; divider++)
         {
@@ -133,18 +167,72 @@ std::vector<int> parallelDomain2(int minNum, int maxNum)
                 multiple = divider + divider;
 
             for (; multiple <= upperSubsetLimit; multiple += divider) //dodajemy wszystkie wielokrotnoœci
-                primeOrComplexDivided[threadNumber][multiple - lowerSubsetLimit] = COMPLEX;
+                subset[multiple - lowerSubsetLimit] = COMPLEX;
+        }
+
+        switch (threadNumber)
+        {
+        case 0:
+            subset0 = subset;
+        case 1:
+            subset1 = subset;
+        case 2:
+            subset2 = subset;
+        case 3:
+            subset3 = subset;
+        case 4:
+            subset4 = subset;
+        case 5:
+            subset5 = subset;
+        case 6:
+            subset6 = subset;
+        case 7:
+            subset7 = subset;
         }
     }
 
-    std::vector <bool> primeOrComplex;
-    primeOrComplex.reserve(maxNum - minNum); 
-    for(int i = 0; i < primeOrComplexDivided.size(); i++)
-        primeOrComplex.insert(primeOrComplex.end(), primeOrComplexDivided[i].begin(), primeOrComplexDivided[i].end());
+    //for (int i = 0; i < subset0.size(); i++)
+     //   std::cout << subset0[i] << std::endl;
 
+    std::vector <bool> primeOrComplex;
+   // primeOrComplex.reserve(maxNum - minNum); 
+
+    if (threadsNum == 0)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset0.begin(), subset0.end());
+
+    if (threadsNum == 1)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset1.begin(), subset1.end());
+
+    if (threadsNum == 2)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset2.begin(), subset2.end());
+
+    if (threadsNum == 3)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset3.begin(), subset3.end());
+
+    if (threadsNum == 4)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset4.begin(), subset4.end());
+
+    if (threadsNum == 5)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset5.begin(), subset5.end());
+
+    if (threadsNum == 6)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset6.begin(), subset6.end());
+
+    if (threadsNum == 7)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset7.begin(), subset7.end());
+
+primeOrComplexCreated:
 
     std::vector <int> primeNumbers;
-    for (int i = minNum - 2; i < primeOrComplex.size(); i++)
+    for (int i = 0; i < primeOrComplex.size(); i++)
     {
         if (primeOrComplex[i] == PRIME)
             primeNumbers.push_back(i + 2);
