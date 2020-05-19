@@ -1,4 +1,4 @@
-#include <stdio.h>
+ï»¿#include <stdio.h>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -15,14 +15,11 @@ void printVector(std::vector <int> vec)
 {
     for (int i = 0; i < vec.size(); i++)
     {
-        //printf("%d ", vec[i]);
-        std::cout << vec[i] << " ";
+        printf("%d ", vec[i]);
         if (i % 10 == 9) //co 10-ta liczba
-            //printf("\n");
-            std::cout << std::endl;
+            printf("\n");
     }
-    //printf("\nprime numbers count: %d\n", vec.size());
-    std::cout << std::endl << "prime numbers count: " << vec.size() << std::endl;
+    printf("\nprime numbers count: %d\n", vec.size());
 }
 
 std::vector < std::vector <int> > createSubsets(int lowerLimit, int upperLimit, int subsetsNumber) 
@@ -46,40 +43,20 @@ std::vector < std::vector <int> > createSubsets(int lowerLimit, int upperLimit, 
 
 //////////////////////////////////////////////////////////////////
 
-std::vector<int> parallelDomain1(int minNum, int maxNum)
-{
+std::vector<int> createStartingPrimes(int minNum, int maxNum) {
+
+    int lastNum = (int)sqrt(maxNum);
     std::vector<bool> primeOrComplex;
     for (int i = 2; i <= maxNum; i++)
         primeOrComplex.push_back(PRIME);
-    std::vector < std::vector <int> > subsets = createSubsets(minNum, maxNum, threadsNum);
 
-#pragma omp		parallel num_threads(threadsNum)
+    for (int divider = 2; divider <= lastNum; divider++)
     {
-        int threadNumber = omp_get_thread_num();
-        std::vector <int> threadSubset = subsets[threadNumber];
-        int lowerSubsetLimit = threadSubset[0];
-        int upperSubsetLimit = threadSubset[1];
-        int lastSubsetNumber = (int)sqrt(upperSubsetLimit);
+        if (primeOrComplex[divider - 2] == COMPLEX)
+            continue;
 
-        for (int divider = 2; divider <= lastSubsetNumber; divider++)
-        {
-            if (primeOrComplex[divider - 2] == COMPLEX)
-                continue;
-
-            //znajdujemy pierwsza wielokrotnosc tej liczby w przedziale watku
-            int multiple = lowerSubsetLimit;
-            for (; multiple % divider != 0; multiple++)
-                continue;
-            if (multiple == divider)
-                multiple = divider + divider;
-            
-            for (; multiple <= upperSubsetLimit; multiple += divider) //dodajemy wszystkie wielokrotnoœci
-            {
-                if (primeOrComplex[multiple - 2] == PRIME)
-#pragma omp critical
-                    primeOrComplex[multiple - 2] = COMPLEX;
-            }
-        }
+        for (int multiple = divider + divider; multiple <= maxNum; multiple += divider) //usuwamy wszystkie wielokrotnoÅ“ci
+            primeOrComplex[multiple - 2] = COMPLEX;
     }
 
     std::vector <int> primeNumbers;
@@ -92,12 +69,12 @@ std::vector<int> parallelDomain1(int minNum, int maxNum)
     return primeNumbers;
 }
 
-//////////////////////////////////////////////////////////////////
-
-std::vector<int> parallelDomain2(int minNum, int maxNum)
+std::vector<int> parallelDomain(int minNum, int maxNum)
 {
     //CREATE GLOBAL SUBSETS//
     std::vector < std::vector <int> > subsets = createSubsets(minNum, maxNum, threadsNum);
+    int lastNum = (int)sqrt(maxNum);
+    std::vector <int> startingPrimes = createStartingPrimes(2, lastNum);
 
     std::vector <bool> subset0;
     std::vector <bool> subset1;
@@ -115,11 +92,11 @@ std::vector<int> parallelDomain2(int minNum, int maxNum)
         int lowerSubsetLimit = threadSubset[0];
         int upperSubsetLimit = threadSubset[1];
         int subsetRange = upperSubsetLimit - lowerSubsetLimit + 1;
-        int lastSubsetNumber = (int)sqrt(upperSubsetLimit);
         std::vector <bool> subset(subsetRange, PRIME);
         
-        for (int divider = 2; divider <= lastSubsetNumber; divider++)
+        for (int i = 0; i < startingPrimes.size(); i++)
         {
+            int divider = startingPrimes[i];
             //znajdujemy pierwsza wielokrotnosc tej liczby w przedziale watku
             int multiple = lowerSubsetLimit;
             for (; multiple % divider != 0; multiple++)
@@ -127,7 +104,7 @@ std::vector<int> parallelDomain2(int minNum, int maxNum)
             if (multiple == divider)
                 multiple = divider + divider;
 
-            for (; multiple <= upperSubsetLimit; multiple += divider) //dodajemy wszystkie wielokrotnoœci
+            for (; multiple <= upperSubsetLimit; multiple += divider) //dodajemy wszystkie wielokrotnoÅ›ci
                 subset[multiple - lowerSubsetLimit] = COMPLEX;
         }
 
@@ -195,69 +172,7 @@ std::vector<int> parallelDomain2(int minNum, int maxNum)
         goto primeOrComplexCreated;
     primeOrComplex.insert(primeOrComplex.end(), subset7.begin(), subset7.end());
 
-primeOrComplexCreated:  
-
-    std::vector <int> primeNumbers;
-    for (int i = 0; i < primeOrComplex.size(); i++)
-    {
-        if (primeOrComplex[i] == PRIME)
-            primeNumbers.push_back(i + 2);
-    }
-
-    return primeNumbers;
-}
-
-//////////////////////////////////////////////////////////////////
-
-std::vector<int> parallelDomain3(int minNum, int maxNum)
-{
-    std::vector<bool> primeOrComplex;
-    for (int i = 2; i <= maxNum; i++)
-        primeOrComplex.push_back(PRIME);
-    std::vector < std::vector <int> > subsets = createSubsets(minNum, maxNum, threadsNum);
-
-    int lastNum = (int)sqrt(maxNum);
-    std::vector <int> startingPrimes = parallelDomain1(2, lastNum);
-
-#pragma omp		parallel num_threads(threadsNum)
-    {
-        int threadNumber = omp_get_thread_num();
-        std::vector <int> threadSubset = subsets[threadNumber];
-        int lowerSubsetLimit = threadSubset[0];
-        int upperSubsetLimit = threadSubset[1];
-        int lastSubsetNumber = (int)sqrt(upperSubsetLimit);
-
-        std::vector<bool> localPrimeOrComplex;
-        for (int i = lowerSubsetLimit; i <= upperSubsetLimit; i++)
-            localPrimeOrComplex.push_back(PRIME);
-
-        for (int i = 0; i < startingPrimes.size(); i++) 
-        {
-            int primeNumber = startingPrimes[i];
-
-            //znajdujemy pierwsza wielokrotnosc tej liczby w przedziale watku
-            int multiple = lowerSubsetLimit;
-            for (; multiple % primeNumber != 0; multiple++)
-                continue;
-            if (multiple == primeNumber)
-                multiple = primeNumber + primeNumber;
-
-            for (; multiple <= upperSubsetLimit; multiple += primeNumber) //dodajemy wszystkie wielokrotnoœci
-                localPrimeOrComplex[multiple - lowerSubsetLimit] = COMPLEX;
-        }
-
-        //³¹czenie lokalnych zbiorów liczb z³o¿onych w jeden globalny
-        for (int i = 0; i < localPrimeOrComplex.size(); i++)
-        {
-            if (localPrimeOrComplex[i] == COMPLEX)
-            {
-                int numberIndex = i + lowerSubsetLimit - 2;
-#pragma omp critical
-                primeOrComplex[numberIndex] = COMPLEX;
-            }
-        }
-    }
-
+primeOrComplexCreated:
     std::vector <int> primeNumbers;
     for (int i = minNum - 2; i < primeOrComplex.size(); i++)
     {
@@ -272,6 +187,6 @@ std::vector<int> parallelDomain3(int minNum, int maxNum)
 
 int main()
 {
-    std::vector <int> tmp = parallelDomain2(2, 300000000);
+    std::vector <int> tmp = parallelDomain(2, 300000000); //2.516
     //printVector(tmp);
 }
