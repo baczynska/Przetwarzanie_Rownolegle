@@ -1,4 +1,4 @@
-#include <stdio.h>
+ï»¿#include <stdio.h>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -22,157 +22,169 @@ void printVector(std::vector <int> vec)
     printf("\nprime numbers count: %d\n", vec.size());
 }
 
-
 //////////////////////////////////////////////////////////////////
 
-/*
-    1. Podziel pomiêdzy w¹tki nastêpuj¹ce iteracje:
-            1. WeŸ kolejn¹ liczbê z zakresu (2 ... sqrt(N))
-            2. Jeœli jest ju¿ w zbiorze liczb z³o¿onych, to koniec iteracji
-            3. Dodaj wszystkie interesuj¹ce nas wielokrotnoœci tej liczby
-               do GLOBALNEGO zbioru liczb z³o¿onych (atomowo)
-        2. Wszystkie liczby z interesuj¹cego nas przedzia³u, których nie ma w
-           zbiorze liczb z³o¿onych, s¹ liczbami pierwszymi
+std::vector<int> createStartingPrimes(int minNum, int maxNum) {
 
-        -Koniecznoœæ atomowego dodawania liczb do zbioru
-        +Nie potrzeba ¿adnego dodatkowego zbioru z liczbami pierwszymi
-        +/- Przewa¿nie dodajemy do zbioru wielokrotnoœci liczb pierwszych
-         (a nie np wielokrotnoœci czwórki: 4, 8, 12, 16)
-*/
-std::vector<int> parallelFunctional1(int minNum, int maxNum)
-{
     int lastNum = (int)sqrt(maxNum);
     std::vector<bool> primeOrComplex;
     for (int i = 2; i <= maxNum; i++)
         primeOrComplex.push_back(PRIME);
 
+    for (int divider = 2; divider <= lastNum; divider++)
+    {
+        if (primeOrComplex[divider - 2] == COMPLEX)
+            continue;
+
+        for (int multiple = divider + divider; multiple <= maxNum; multiple += divider) //usuwamy wszystkie wielokrotnoÅ“ci
+            primeOrComplex[multiple - 2] = COMPLEX;
+    }
+
+    std::vector <int> primeNumbers;
+    for (int i = minNum - 2; i < primeOrComplex.size(); i++)
+    {
+        if (primeOrComplex[i] == PRIME)
+            primeNumbers.push_back(i + 2);
+    }
+
+    return primeNumbers;
+}
+
+std::vector<int> parallelFunctional(int minNum, int maxNum)
+{
+    int lastNum = (int)sqrt(maxNum);
+    int range = (maxNum - minNum) + 1;
+    std::vector <int> startingPrimes = createStartingPrimes(2, lastNum);
+
+    std::vector <bool> primeOrComplex0;
+    std::vector <bool> primeOrComplex1;
+    std::vector <bool> primeOrComplex2;
+    std::vector <bool> primeOrComplex3;
+    std::vector <bool> primeOrComplex4;
+    std::vector <bool> primeOrComplex5;
+    std::vector <bool> primeOrComplex6;
+    std::vector <bool> primeOrComplex7;
+
 #pragma omp		parallel num_threads(threadsNum)
     {
-#pragma omp		for schedule(dynamic, 40)
-        for (int divider = 2; divider <= lastNum; divider++)
+        int threadNumber = omp_get_thread_num();
+        std::vector<bool> localPrimeOrComplex(range, PRIME);
+
+#pragma omp		for schedule(dynamic, 10)
+        for (int i = 0; i < startingPrimes.size(); i++)
         {
-            if (primeOrComplex[divider - 2] == COMPLEX)
+            int divider = startingPrimes[i];
+            //znajdujemy pierwsza wielokrotnosc tej liczby w przedziale
+            int multiple = minNum;
+            for (; multiple % divider != 0; multiple++)
                 continue;
+            if (multiple == divider)
+                multiple = divider + divider;
 
-            for (int multiple = divider + divider; multiple <= maxNum; multiple += divider) //usuwamy wszystkie wielokrotnoœci
-            {
-#pragma omp critical
-                primeOrComplex[multiple - 2] = COMPLEX;
-            }
+            for (; multiple <= maxNum; multiple += divider) //dodajemy wszystkie wielokrotnoÅ›ci
+                localPrimeOrComplex[multiple - minNum] = COMPLEX;
         }
-    }
 
-    std::vector <int> primeNumbers;
-    for (int i = minNum - 2; i < primeOrComplex.size(); i++)
-    {
-        if (primeOrComplex[i] == PRIME)
-            primeNumbers.push_back(i + 2);
-    }
-
-    return primeNumbers;
-}
-
-//////////////////////////////////////////////////////////////////
-
-/*
-    1. Podziel pomiêdzy w¹tki nastêpuj¹ce iteracje:
-        1. WeŸ kolejn¹ liczbê z zakresu (2 ... sqrt(N))
-        2. Dodaj wszystkie interesuj¹ce nas wielokrotnoœci tej liczby 
-           do LOKALNEGO zbioru liczb z³o¿onych w¹tku
-    3. Po³¹cz wszystkie lokalne zbiory liczb z³o¿onych w jeden globalny
-    4. Wszystkie liczby z interesuj¹cego nas przedzia³u, których nie ma w
-       zbiorze liczb z³o¿onych, s¹ liczbami pierwszymi
-
-    +Brak koniecznoœci atomowego dodawania liczb do zbioru
-    +Nie potrzeba ¿adnego dodatkowego zbioru z liczbami pierwszymi
-    -Dodajemy do zbioru tak¿e wielokrotnoœci liczb z³o¿onych
-     (np wielokrotnoœci czwórki: 4, 8, 12, 16)
-*/
-std::vector<int> parallelFunctional2(int minNum, int maxNum)
-{
-    int lastNum = (int)sqrt(maxNum);
-    std::vector<bool> primeOrComplex;
-    for (int i = 2; i <= maxNum; i++)
-        primeOrComplex.push_back(PRIME);
-
-#pragma omp		parallel num_threads(threadsNum)
-    {
-        std::vector<bool> localPrimeOrComplex;
-        for (int i = 2; i <= maxNum; i++)
-            localPrimeOrComplex.push_back(PRIME);
-
-#pragma omp		for schedule(dynamic, 10000)
-        for (int divider = 2; divider <= lastNum; divider++)
-            for (int multiple = divider + divider; multiple <= maxNum; multiple += divider) //dodajemy wszystkie wielokrotnoœci
-                localPrimeOrComplex[multiple - 2] = COMPLEX;
-
-        //³¹czenie lokalnych zbiorów liczb z³o¿onych w jeden globalny
-        for (int i = 0; i < localPrimeOrComplex.size(); i++)
+        switch (threadNumber)
         {
-            if (localPrimeOrComplex[i] == COMPLEX)
-#pragma omp critical
-            primeOrComplex[i] = COMPLEX;
+        case 0:
+            primeOrComplex0 = localPrimeOrComplex;
+            break;
+        case 1:
+            primeOrComplex1 = localPrimeOrComplex;
+            break;
+        case 2:
+            primeOrComplex2 = localPrimeOrComplex;
+            break;
+        case 3:
+            primeOrComplex3 = localPrimeOrComplex;
+            break;
+        case 4:
+            primeOrComplex4 = localPrimeOrComplex;
+            break;
+        case 5:
+            primeOrComplex5 = localPrimeOrComplex;
+            break;
+        case 6:
+            primeOrComplex6 = localPrimeOrComplex;
+            break;
+        case 7:
+            primeOrComplex7 = localPrimeOrComplex;
+            break;
         }
     }
 
-    std::vector <int> primeNumbers;
-    for (int i = minNum - 2; i < primeOrComplex.size(); i++)
+    //Å‚Ä…czenie lokalnych zbiorÃ³w liczb zÅ‚oÅ¼onych w jeden globalny
+    std::vector <bool> primeOrComplex;
+    switch (threadsNum)
     {
-        if (primeOrComplex[i] == PRIME)
-            primeNumbers.push_back(i + 2);
-    }
-
-    return primeNumbers;
-}
-
-//////////////////////////////////////////////////////////////////
-
-/*
-    1. ZnajdŸ wszystkie liczby pierwsze <= sqrt(upperLimit)
-    2. Podziel pomiêdzy w¹tki nastêpuj¹ce iteracje:
-        1. WeŸ kolejn¹ liczbê ze zbioru liczb pierwszych
-        2. Dodaj wszystkie interesuj¹ce nas wielokrotnoœci tej liczby 
-           do LOKALNEGO zbioru liczb z³o¿onych w¹tku
-    3. Po³¹cz wszystkie lokalne zbiory liczb z³o¿onych w jeden globalny
-    4. Wszystkie liczby z interesuj¹cego nas przedzia³u, których nie ma w
-       zbiorze liczb z³o¿onych, s¹ liczbami pierwszymi
-
-    +Brak koniecznoœci atomowego dodawania liczb do zbioru
-    -Potrzeba wygenerowania zbioru liczb pierwszych 
-     przed wykonaniem algorytmu
-    +Dodajemy do zbioru tylko wielokrotnoœci liczb pierwszych
-     (a nie np wielokrotnoœci czwórki: 4, 8, 12, 16)
-*/
-std::vector<int> parallelFunctional3(int minNum, int maxNum)
-{
-    int lastNum = (int)sqrt(maxNum);
-    std::vector<bool> primeOrComplex;
-    for (int i = 2; i <= maxNum; i++)
-        primeOrComplex.push_back(PRIME);
-
-    std::vector <int> startingPrimes = parallelFunctional1(2, lastNum);
-
-#pragma omp		parallel num_threads(threadsNum)
-    {
-        std::vector<bool> localPrimeOrComplex;
-        for (int i = 2; i <= maxNum; i++)
-            localPrimeOrComplex.push_back(PRIME);
-
-#pragma omp		for schedule(dynamic, 1000)
-        for (int i = 0; i < startingPrimes.size(); i++) 
-        {
-            int primeNumber = startingPrimes[i];
-            for (int multiple = primeNumber + primeNumber; multiple <= maxNum; multiple += primeNumber) //dodajemy wszystkie wielokrotnoœci
-                localPrimeOrComplex[multiple - 2] = COMPLEX;
-        }
-
-        //³¹czenie lokalnych zbiorów liczb z³o¿onych w jeden globalny
-        for (int i = 0; i < localPrimeOrComplex.size(); i++)
-        {
-            if (localPrimeOrComplex[i] == COMPLEX)
-#pragma omp critical
-                primeOrComplex[i] = COMPLEX;
-        }
+    case 1:
+        for (int i = 0; i < range; i++)
+            primeOrComplex.push_back(primeOrComplex0[i]);
+        break;
+    case 2:
+        for (int i = 0; i < range; i++)
+            primeOrComplex.push_back(
+                primeOrComplex0[i] * 
+                primeOrComplex1[i]);
+        break;
+    case 3:
+        for (int i = 0; i < range; i++)
+            primeOrComplex.push_back(
+                primeOrComplex0[i] *
+                primeOrComplex1[i] *
+                primeOrComplex2[i]);
+        break;
+    case 4:
+        for (int i = 0; i < range; i++)
+            primeOrComplex.push_back(
+                primeOrComplex0[i] *
+                primeOrComplex1[i] *
+                primeOrComplex2[i] *
+                primeOrComplex3[i]);
+        break;
+    case 5:
+        for (int i = 0; i < range; i++)
+            primeOrComplex.push_back(
+                primeOrComplex0[i] *
+                primeOrComplex1[i] *
+                primeOrComplex2[i] *
+                primeOrComplex3[i] *
+                primeOrComplex4[i]);
+        break;
+    case 6:
+        for (int i = 0; i < range; i++)
+            primeOrComplex.push_back(
+                primeOrComplex0[i] *
+                primeOrComplex1[i] *
+                primeOrComplex2[i] *
+                primeOrComplex3[i] *
+                primeOrComplex4[i] *
+                primeOrComplex5[i]);
+        break;
+    case 7:
+        for (int i = 0; i < range; i++)
+            primeOrComplex.push_back(
+                primeOrComplex0[i] *
+                primeOrComplex1[i] *
+                primeOrComplex2[i] *
+                primeOrComplex3[i] *
+                primeOrComplex4[i] *
+                primeOrComplex5[i] *
+                primeOrComplex6[i]);
+        break;
+    case 8:
+        for (int i = 0; i < range; i++)
+            primeOrComplex.push_back(
+                primeOrComplex0[i] *
+                primeOrComplex1[i] *
+                primeOrComplex2[i] *
+                primeOrComplex3[i] *
+                primeOrComplex4[i] *
+                primeOrComplex5[i] *
+                primeOrComplex6[i] *
+                primeOrComplex7[i]);
+        break;
     }
 
     std::vector <int> primeNumbers;
@@ -189,8 +201,6 @@ std::vector<int> parallelFunctional3(int minNum, int maxNum)
 
 int main()
 {
-    std::vector <int> tmp = parallelFunctional3(2, 3000000);
-    //std::vector <int> tmp = parallelFunctional2(20, 100);
-    //std::vector <int> tmp = parallelFunctional3(20, 100);
+    std::vector <int> tmp = parallelFunctional(2, 300000000); //7.191
     //printVector(tmp);
 }
