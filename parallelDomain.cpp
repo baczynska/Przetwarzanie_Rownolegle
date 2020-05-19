@@ -4,7 +4,7 @@
 #include <cmath>
 #include "omp.h"
 
-#define threadsNum 6
+#define threadsNum 8
 
 #define PRIME 1
 #define COMPLEX 0
@@ -15,11 +15,14 @@ void printVector(std::vector <int> vec)
 {
     for (int i = 0; i < vec.size(); i++)
     {
-        printf("%d ", vec[i]);
-        if(i % 10 == 9) //co 10-ta liczba
-            printf("\n");
+        //printf("%d ", vec[i]);
+        std::cout << vec[i] << " ";
+        if (i % 10 == 9) //co 10-ta liczba
+            //printf("\n");
+            std::cout << std::endl;
     }
-    printf("\nprime numbers count: %d\n", vec.size());
+    //printf("\nprime numbers count: %d\n", vec.size());
+    std::cout << std::endl << "prime numbers count: " << vec.size() << std::endl;
 }
 
 std::vector < std::vector <int> > createSubsets(int lowerLimit, int upperLimit, int subsetsNumber) 
@@ -105,48 +108,6 @@ std::vector<int> parallelDomain2(int minNum, int maxNum)
     std::vector <bool> subset6;
     std::vector <bool> subset7;
 
-    if (threadsNum == 0)
-        goto subsetsCreated;
-    for (int i = 0; i < subsets[0][1] - subsets[0][0] + 1; i++)
-        subset0.push_back(PRIME);
-
-    if (threadsNum == 1)                                      
-        goto subsetsCreated;
-    for (int i = 0; i < subsets[1][1] - subsets[1][0] + 1; i++)
-        subset1.push_back(PRIME);
-                                                               
-    if (threadsNum == 2)                                       
-        goto subsetsCreated;
-    for (int i = 0; i < subsets[2][1] - subsets[2][0] + 1; i++)
-        subset2.push_back(PRIME);
-                                                              
-    if (threadsNum == 3)                                      
-        goto subsetsCreated;
-    for (int i = 0; i < subsets[3][1] - subsets[3][0] + 1; i++)
-        subset3.push_back(PRIME);
-                                                              
-    if (threadsNum == 4)                                      
-        goto subsetsCreated;
-    for (int i = 0; i < subsets[4][1] - subsets[4][0] + 1; i++)
-        subset4.push_back(PRIME);
-                                                             
-    if (threadsNum == 5)                                     
-        goto subsetsCreated;
-    for (int i = 0; i < subsets[5][1] - subsets[5][0] + 1; i++)
-        subset5.push_back(PRIME);
-                                                              
-    if (threadsNum == 6)                                      
-        goto subsetsCreated;
-    for (int i = 0; i < subsets[6][1] - subsets[6][0] + 1; i++)
-        subset6.push_back(PRIME);
-                                                              
-    if (threadsNum == 7)                                      
-        goto subsetsCreated;
-    for (int i = 0; i < subsets[7][1] - subsets[7][0] + 1; i++)
-        subset7.push_back(PRIME);
-
-subsetsCreated:
-
 #pragma omp		parallel num_threads(threadsNum)
     {
         int threadNumber = omp_get_thread_num();
@@ -156,7 +117,7 @@ subsetsCreated:
         int subsetRange = upperSubsetLimit - lowerSubsetLimit + 1;
         int lastSubsetNumber = (int)sqrt(upperSubsetLimit);
         std::vector <bool> subset(subsetRange, PRIME);
-
+        
         for (int divider = 2; divider <= lastSubsetNumber; divider++)
         {
             //znajdujemy pierwsza wielokrotnosc tej liczby w przedziale watku
@@ -174,28 +135,33 @@ subsetsCreated:
         {
         case 0:
             subset0 = subset;
+            break;
         case 1:
             subset1 = subset;
+            break;
         case 2:
             subset2 = subset;
+            break;
         case 3:
             subset3 = subset;
+            break;
         case 4:
             subset4 = subset;
+            break;
         case 5:
             subset5 = subset;
+            break;
         case 6:
             subset6 = subset;
+            break;
         case 7:
             subset7 = subset;
+            break;
         }
     }
 
-    //for (int i = 0; i < subset0.size(); i++)
-     //   std::cout << subset0[i] << std::endl;
-
     std::vector <bool> primeOrComplex;
-   // primeOrComplex.reserve(maxNum - minNum); 
+    primeOrComplex.reserve(maxNum - minNum); 
 
     if (threadsNum == 0)
         goto primeOrComplexCreated;
@@ -229,7 +195,7 @@ subsetsCreated:
         goto primeOrComplexCreated;
     primeOrComplex.insert(primeOrComplex.end(), subset7.begin(), subset7.end());
 
-primeOrComplexCreated:
+primeOrComplexCreated:  
 
     std::vector <int> primeNumbers;
     for (int i = 0; i < primeOrComplex.size(); i++)
@@ -306,6 +272,6 @@ std::vector<int> parallelDomain3(int minNum, int maxNum)
 
 int main()
 {
-    std::vector <int> tmp = parallelDomain2(2, 100);
-    printVector(tmp);
+    std::vector <int> tmp = parallelDomain2(2, 300000000);
+    //printVector(tmp);
 }
