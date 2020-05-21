@@ -22,6 +22,25 @@ void printVector(std::vector <int> vec)
     printf("\nprime numbers count: %d\n", vec.size());
 }
 
+std::vector < std::vector <int> > createSubsets(int lowerLimit, int upperLimit, int subsetsNumber)
+{
+    int range = (upperLimit - lowerLimit) / subsetsNumber;
+    std::vector < std::vector <int> > subsets;
+    std::vector <int> singleSubset;
+
+    int nextNumber = lowerLimit;
+    for (int i = 0; i < subsetsNumber - 1; i++)
+    {
+        singleSubset = { nextNumber, nextNumber + range - 1};
+        subsets.push_back(singleSubset);
+        nextNumber = nextNumber + range;
+    }
+    singleSubset = { nextNumber, upperLimit };
+    subsets.push_back(singleSubset);
+
+    return subsets;
+}
+
 //////////////////////////////////////////////////////////////////
 
 std::vector<int> createStartingPrimes(int minNum, int maxNum) {
@@ -52,141 +71,108 @@ std::vector<int> createStartingPrimes(int minNum, int maxNum) {
 
 std::vector<int> parallelFunctional(int minNum, int maxNum)
 {
+    //CREATE GLOBAL SUBSETS//
+    std::vector < std::vector <int> > subsets = createSubsets(minNum, maxNum, threadsNum);
     int lastNum = (int)sqrt(maxNum);
-    int range = (maxNum - minNum) + 1;
     std::vector <int> startingPrimes = createStartingPrimes(2, lastNum);
 
-    std::vector <bool> primeOrComplex0;
-    std::vector <bool> primeOrComplex1;
-    std::vector <bool> primeOrComplex2;
-    std::vector <bool> primeOrComplex3;
-    std::vector <bool> primeOrComplex4;
-    std::vector <bool> primeOrComplex5;
-    std::vector <bool> primeOrComplex6;
-    std::vector <bool> primeOrComplex7;
+    std::vector <bool> subset0;
+    std::vector <bool> subset1;
+    std::vector <bool> subset2;
+    std::vector <bool> subset3;
+    std::vector <bool> subset4;
+    std::vector <bool> subset5;
+    std::vector <bool> subset6;
+    std::vector <bool> subset7;
 
 #pragma omp		parallel num_threads(threadsNum)
     {
         int threadNumber = omp_get_thread_num();
-        std::vector<bool> localPrimeOrComplex(range, PRIME);
+        std::vector <int> threadSubset = subsets[threadNumber];
+        int lowerSubsetLimit = threadSubset[0];
+        int upperSubsetLimit = threadSubset[1];
+        int subsetRange = upperSubsetLimit - lowerSubsetLimit + 1;
+        std::vector <bool> subset(subsetRange, PRIME);
 
-#pragma omp		for schedule(dynamic, 10)
         for (int i = 0; i < startingPrimes.size(); i++)
         {
             int divider = startingPrimes[i];
-            //znajdujemy pierwsza wielokrotnosc tej liczby w przedziale
-            int multiple = minNum;
+            //znajdujemy pierwsza wielokrotnosc tej liczby w przedziale watku
+            int multiple = lowerSubsetLimit;
             for (; multiple % divider != 0; multiple++)
                 continue;
             if (multiple == divider)
                 multiple = divider + divider;
 
-            for (; multiple <= maxNum; multiple += divider) //dodajemy wszystkie wielokrotności
-                localPrimeOrComplex[multiple - minNum] = COMPLEX;
+            for (; multiple <= upperSubsetLimit; multiple += divider) //dodajemy wszystkie wielokrotności
+                subset[multiple - lowerSubsetLimit] = COMPLEX;
         }
 
         switch (threadNumber)
         {
         case 0:
-            primeOrComplex0 = localPrimeOrComplex;
+            subset0 = subset;
             break;
         case 1:
-            primeOrComplex1 = localPrimeOrComplex;
+            subset1 = subset;
             break;
         case 2:
-            primeOrComplex2 = localPrimeOrComplex;
+            subset2 = subset;
             break;
         case 3:
-            primeOrComplex3 = localPrimeOrComplex;
+            subset3 = subset;
             break;
         case 4:
-            primeOrComplex4 = localPrimeOrComplex;
+            subset4 = subset;
             break;
         case 5:
-            primeOrComplex5 = localPrimeOrComplex;
+            subset5 = subset;
             break;
         case 6:
-            primeOrComplex6 = localPrimeOrComplex;
+            subset6 = subset;
             break;
         case 7:
-            primeOrComplex7 = localPrimeOrComplex;
+            subset7 = subset;
             break;
         }
     }
 
-    //łączenie lokalnych zbiorów liczb złożonych w jeden globalny
     std::vector <bool> primeOrComplex;
-    switch (threadsNum)
-    {
-    case 1:
-        for (int i = 0; i < range; i++)
-            primeOrComplex.push_back(primeOrComplex0[i]);
-        break;
-    case 2:
-        for (int i = 0; i < range; i++)
-            primeOrComplex.push_back(
-                primeOrComplex0[i] * 
-                primeOrComplex1[i]);
-        break;
-    case 3:
-        for (int i = 0; i < range; i++)
-            primeOrComplex.push_back(
-                primeOrComplex0[i] *
-                primeOrComplex1[i] *
-                primeOrComplex2[i]);
-        break;
-    case 4:
-        for (int i = 0; i < range; i++)
-            primeOrComplex.push_back(
-                primeOrComplex0[i] *
-                primeOrComplex1[i] *
-                primeOrComplex2[i] *
-                primeOrComplex3[i]);
-        break;
-    case 5:
-        for (int i = 0; i < range; i++)
-            primeOrComplex.push_back(
-                primeOrComplex0[i] *
-                primeOrComplex1[i] *
-                primeOrComplex2[i] *
-                primeOrComplex3[i] *
-                primeOrComplex4[i]);
-        break;
-    case 6:
-        for (int i = 0; i < range; i++)
-            primeOrComplex.push_back(
-                primeOrComplex0[i] *
-                primeOrComplex1[i] *
-                primeOrComplex2[i] *
-                primeOrComplex3[i] *
-                primeOrComplex4[i] *
-                primeOrComplex5[i]);
-        break;
-    case 7:
-        for (int i = 0; i < range; i++)
-            primeOrComplex.push_back(
-                primeOrComplex0[i] *
-                primeOrComplex1[i] *
-                primeOrComplex2[i] *
-                primeOrComplex3[i] *
-                primeOrComplex4[i] *
-                primeOrComplex5[i] *
-                primeOrComplex6[i]);
-        break;
-    case 8:
-        for (int i = 0; i < range; i++)
-            primeOrComplex.push_back(
-                primeOrComplex0[i] *
-                primeOrComplex1[i] *
-                primeOrComplex2[i] *
-                primeOrComplex3[i] *
-                primeOrComplex4[i] *
-                primeOrComplex5[i] *
-                primeOrComplex6[i] *
-                primeOrComplex7[i]);
-        break;
-    }
+    primeOrComplex.reserve(maxNum - minNum);
 
+    if (threadsNum == 1)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset0.begin(), subset0.end());
+
+    if (threadsNum == 2)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset1.begin(), subset1.end());
+
+    if (threadsNum == 3)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset2.begin(), subset2.end());
+
+    if (threadsNum == 4)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset3.begin(), subset3.end());
+
+    if (threadsNum == 5)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset4.begin(), subset4.end());
+
+    if (threadsNum == 6)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset5.begin(), subset5.end());
+
+    if (threadsNum == 7)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset6.begin(), subset6.end());
+
+    if (threadsNum == 8)
+        goto primeOrComplexCreated;
+    primeOrComplex.insert(primeOrComplex.end(), subset7.begin(), subset7.end());
+
+primeOrComplexCreated:
     std::vector <int> primeNumbers;
     for (int i = minNum - 2; i < primeOrComplex.size(); i++)
     {
@@ -201,6 +187,6 @@ std::vector<int> parallelFunctional(int minNum, int maxNum)
 
 int main()
 {
-    std::vector <int> tmp = parallelFunctional(2, 300000000); //7.191
+    std::vector <int> tmp = parallelFunctional(2, 300000000); //2.516
     //printVector(tmp);
 }
