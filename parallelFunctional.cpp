@@ -140,35 +140,35 @@ std::vector<int> parallelFunctional(int minNum, int maxNum)
     std::vector <bool> primeOrComplex;
     primeOrComplex.reserve(maxNum - minNum);
 
-    if (threadsNum == 1)
+    if (threadsNum == 0)
         goto primeOrComplexCreated;
     primeOrComplex.insert(primeOrComplex.end(), subset0.begin(), subset0.end());
 
-    if (threadsNum == 2)
+    if (threadsNum == 1)
         goto primeOrComplexCreated;
     primeOrComplex.insert(primeOrComplex.end(), subset1.begin(), subset1.end());
 
-    if (threadsNum == 3)
+    if (threadsNum == 2)
         goto primeOrComplexCreated;
     primeOrComplex.insert(primeOrComplex.end(), subset2.begin(), subset2.end());
 
-    if (threadsNum == 4)
+    if (threadsNum == 3)
         goto primeOrComplexCreated;
     primeOrComplex.insert(primeOrComplex.end(), subset3.begin(), subset3.end());
 
-    if (threadsNum == 5)
+    if (threadsNum == 4)
         goto primeOrComplexCreated;
     primeOrComplex.insert(primeOrComplex.end(), subset4.begin(), subset4.end());
 
-    if (threadsNum == 6)
+    if (threadsNum == 5)
         goto primeOrComplexCreated;
     primeOrComplex.insert(primeOrComplex.end(), subset5.begin(), subset5.end());
 
-    if (threadsNum == 7)
+    if (threadsNum == 6)
         goto primeOrComplexCreated;
     primeOrComplex.insert(primeOrComplex.end(), subset6.begin(), subset6.end());
 
-    if (threadsNum == 8)
+    if (threadsNum == 7)
         goto primeOrComplexCreated;
     primeOrComplex.insert(primeOrComplex.end(), subset7.begin(), subset7.end());
 
